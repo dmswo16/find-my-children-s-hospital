@@ -289,7 +289,7 @@ async function initKakaoMap(){
     if(window.ResizeObserver)new ResizeObserver(()=>relayoutKakaoMap()).observe($("map"));
     window.addEventListener("resize",relayoutKakaoMap);
     document.addEventListener("visibilitychange",()=>{if(!document.hidden)relayoutKakaoMap();});
-    if(window.MutationObserver)new MutationObserver(()=>{if($("map").getClientRects().length)relayoutKakaoMap();}).observe($("map").parentElement,{attributes:true,childList:true,subtree:true});
+    // MutationObserver removed: Kakao Maps changes its own DOM frequently; observing the whole map subtree can cause repeated relayouts and freeze the page.
     if(lastMapList.length)updateHospitalMap(lastMapList);
   }catch(e){setMapMessage("카카오 지도를 불러오지 못했습니다. JavaScript 키, 웹 플랫폼 도메인, 네트워크 연결을 확인해 주세요.");console.error(e);}
 }
