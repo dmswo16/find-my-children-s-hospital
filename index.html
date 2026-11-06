@@ -27,7 +27,7 @@ main{padding:28px 30px}
 .notice{background:#fff8e1;border:1px solid #f1d98a;border-radius:10px;padding:12px 16px;font-size:14.5px;margin-bottom:16px}
 #status{font-weight:700;color:var(--navy);margin:6px 0 14px;font-size:18px}
 #error{background:#fdecec;border:1px solid #f3b4b4;color:#8a1c1c;border-radius:10px;padding:14px 16px;margin-bottom:14px;display:none;white-space:pre-line}
-#map{height:300px;border-radius:12px;background:#dfe8f7;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;color:var(--mute);text-align:center;padding:16px;margin-bottom:18px}
+#map{height:430px;border-radius:12px;background:#eaf0f8;border:1px solid var(--line);overflow:hidden;margin-bottom:6px}#mapMessage{font-size:14px;color:var(--mute);margin:0 0 18px;min-height:22px}#mapCredit{font-size:12px;color:var(--mute);text-align:right;margin:-2px 2px 16px}@media(max-width:820px){#map{height:55vh;min-height:320px;max-height:520px}}
 #list{display:grid;gap:14px}
 .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;cursor:pointer}
 .card.sel{border-color:var(--blue);box-shadow:0 0 0 2px #bfd3fb}
@@ -81,8 +81,9 @@ table.st{border-collapse:collapse;background:#fff}table.st th,table.st td{border
   <div id="error"></div>
   <div id="status">조건을 선택하고 '소아과 찾기'를 눌러주세요.</div>
   <details id="statBox" style="display:none;margin:-6px 0 14px"><summary><b>자치구별 병원 수 확인</b></summary><div id="statTable" style="font-size:14px"></div></details>
-  <!-- 지도 영역: 카카오맵은 다음 프롬프트에서 이 자리에 연결합니다 -->
-  <div id="map">지도 영역 (카카오맵은 다음 단계에서 연결됩니다)</div>
+  <div id="map" role="application" aria-label="소아과 위치 지도"></div>
+  <p id="mapMessage">카카오맵을 불러오는 중입니다.</p>
+  <div id="mapCredit">지도 제공: Kakao Maps · 병원 정보: 공공데이터포털</div>
   <div id="list"></div>
 </main>
 </div>
@@ -94,7 +95,7 @@ table.st{border-collapse:collapse;background:#fff}table.st th,table.st td{border
 <script>
 // ===== 설정: 여기에 인증키를 입력하세요 =====
 const SERVICE_KEY = "536030c15e457fd3d6de6ea27e463f32a4f3126477b12582ed1e6c6be5fc7268"; // 공공데이터포털 인증키
-const KAKAO_KEY = "YOUR_KAKAO_MAP_KEY"; // 카카오맵 키 (다음 단계에서 사용)
+const KAKAO_KEY = "YOUR_JAVASCRIPT_KEY"; // Kakao Developers의 JavaScript 키를 입력하세요)
 const BASE = "https://apis.data.go.kr/B552657/HsptlAsembySearchService/";
 // =========================================
 
@@ -234,6 +235,7 @@ const v = x => x ? esc(x) : "정보 없음";
 
 function render(list) {
   $("status").textContent = "검색 결과 " + list.length + "곳";
+  updateHospitalMap(list);
   if (!list.length) { $("list").innerHTML = '<p>검색 조건에 맞는 병원이 없습니다.</p>'; return; }
   $("list").innerHTML = list.map((h, i) => `
     <div class="card" data-i="${i}">
@@ -255,8 +257,73 @@ function render(list) {
   });
 }
 
-// 카카오맵 연동 지점: 다음 프롬프트에서 구현
-function onSelect(h) {}
+// Kakao Maps SDK: singleton loading, autoload=false, explicit kakao.maps.load()
+let kakaoSdkPromise=null, kakaoMap=null, kakaoMarkers=[], kakaoInfoWindow=null, lastMapList=[];
+function loadKakaoMapsSdk(){
+  if(window.kakao&&window.kakao.maps) return new Promise(resolve=>window.kakao.maps.load(resolve));
+  if(kakaoSdkPromise) return kakaoSdkPromise;
+  kakaoSdkPromise=new Promise((resolve,reject)=>{
+    const existing=document.querySelector('script[data-kakao-maps-sdk="true"]');
+    const script=existing||document.createElement("script");
+    const ready=()=>{if(!window.kakao||!window.kakao.maps){reject(new Error("Kakao SDK unavailable"));return;}window.kakao.maps.load(resolve);};
+    if(existing){if(window.kakao&&window.kakao.maps) ready();else existing.addEventListener("load",ready,{once:true});existing.addEventListener("error",()=>reject(new Error("Kakao SDK load failed")),{once:true});return;}
+    script.dataset.kakaoMapsSdk="true";script.async=true;
+    script.src="https://dapi.kakao.com/v2/maps/sdk.js?appkey="+encodeURIComponent(KAKAO_KEY)+"&autoload=false";
+    script.onload=ready;script.onerror=()=>reject(new Error("Kakao SDK load failed"));document.head.appendChild(script);
+  });
+  return kakaoSdkPromise;
+}
+function validCoordinates(h){
+  const lat=Number(h.lat),lng=Number(h.lng);
+  return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=33&&lat<=39&&lng>=124&&lng<=132;
+}
+function clearHospitalMarkers(){kakaoMarkers.forEach(m=>m.setMap(null));kakaoMarkers=[];if(kakaoInfoWindow)kakaoInfoWindow.close();}
+function setMapMessage(message){$("mapMessage").textContent=message;}
+async function initKakaoMap(){
+  if(KAKAO_KEY==="YOUR_JAVASCRIPT_KEY"){setMapMessage("KAKAO_KEY에 JavaScript 키를 입력하고 Kakao Developers 웹 플랫폼에 현재 사이트 도메인을 등록해 주세요.");return;}
+  try{
+    await loadKakaoMapsSdk();if(kakaoMap)return;
+    kakaoMap=new kakao.maps.Map($("map"),{center:new kakao.maps.LatLng(37.5665,126.9780),level:7});
+    kakaoInfoWindow=new kakao.maps.InfoWindow({zIndex:3});
+    setMapMessage("병원 검색 후 마커를 누르면 병원 정보를 볼 수 있습니다.");
+    if(window.ResizeObserver)new ResizeObserver(()=>relayoutKakaoMap()).observe($("map"));
+    window.addEventListener("resize",relayoutKakaoMap);
+    document.addEventListener("visibilitychange",()=>{if(!document.hidden)relayoutKakaoMap();});
+    if(window.MutationObserver)new MutationObserver(()=>{if($("map").getClientRects().length)relayoutKakaoMap();}).observe($("map").parentElement,{attributes:true,childList:true,subtree:true});
+    if(lastMapList.length)updateHospitalMap(lastMapList);
+  }catch(e){setMapMessage("카카오 지도를 불러오지 못했습니다. JavaScript 키, 웹 플랫폼 도메인, 네트워크 연결을 확인해 주세요.");console.error(e);}
+}
+function relayoutKakaoMap(){
+  if(!kakaoMap||!$("map").getClientRects().length)return;
+  kakaoMap.relayout();
+  const points=lastMapList.filter(validCoordinates);
+  if(points.length){const bounds=new kakao.maps.LatLngBounds();points.forEach(h=>bounds.extend(new kakao.maps.LatLng(Number(h.lat),Number(h.lng))));kakaoMap.setBounds(bounds);}
+}
+window.refreshHospitalMapLayout=relayoutKakaoMap;
+function updateHospitalMap(list){
+  lastMapList=Array.isArray(list)?list.slice():[];
+  if(!kakaoMap){initKakaoMap();return;}
+  clearHospitalMarkers();
+  const located=lastMapList.filter(validCoordinates);
+  if(!located.length){setMapMessage("검색 결과 중 지도에 표시할 좌표 정보가 있는 병원이 없습니다.");return;}
+  const bounds=new kakao.maps.LatLngBounds();
+  located.forEach(h=>{
+    const pos=new kakao.maps.LatLng(Number(h.lat),Number(h.lng));
+    const marker=new kakao.maps.Marker({map:kakaoMap,position:pos});kakaoMarkers.push(marker);bounds.extend(pos);
+    kakao.maps.event.addListener(marker,"click",()=>{
+      kakaoInfoWindow.setContent('<div style="padding:8px 12px;font-size:13px;max-width:220px"><b>'+esc(h.name)+'</b><br>'+esc(h.addr||"주소 정보 없음")+'</div>');
+      kakaoInfoWindow.open(kakaoMap,marker);
+    });
+  });
+  kakaoMap.setBounds(bounds);
+  setMapMessage("지도에 "+located.length+"곳의 병원을 표시했습니다. 병원 목록을 누르면 해당 위치로 이동합니다.");
+}
+function onSelect(h){
+  if(!kakaoMap||!validCoordinates(h))return;
+  const pos=new kakao.maps.LatLng(Number(h.lat),Number(h.lng));kakaoMap.panTo(pos);kakaoMap.setLevel(3);
+  const marker=kakaoMarkers.find(m=>Math.abs(m.getPosition().getLat()-Number(h.lat))<1e-6&&Math.abs(m.getPosition().getLng()-Number(h.lng))<1e-6);
+  if(marker){kakaoInfoWindow.setContent('<div style="padding:8px 12px;font-size:13px"><b>'+esc(h.name)+'</b><br>'+esc(h.addr||"")+'</div>');kakaoInfoWindow.open(kakaoMap,marker);}
+}
 
 function showError(e) {
   let msg = "병원 정보를 불러오지 못했습니다.";
