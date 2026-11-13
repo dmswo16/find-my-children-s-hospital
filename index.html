@@ -44,6 +44,116 @@ table.st{border-collapse:collapse;background:#fff}table.st th,table.st td{border
 .hero{display:flex;align-items:flex-end;justify-content:flex-end;gap:8px;height:110px;margin-bottom:6px}
 .hero svg{height:100%;width:auto}.hero .tree{height:78%}.hero .leaf{height:34%}
 @media(max-width:820px){.wrap{grid-template-columns:1fr}main{padding:20px 16px}.card dl{grid-template-columns:92px 1fr}}
+
+/* ===== Usahana forest redesign ===== */
+:root{
+ --navy:#4d416d;--blue:#7cc9df;--blue-d:#368ca8;--bg:#f5f9df;
+ --line:#d9a9a0;--text:#514765;--mute:#887d91;--side:#e8f5d4;
+ --pink:#f48caf;--pink-dark:#e75f91;--mint:#d9efc6;--cream:#fffdf4;
+}
+*{box-sizing:border-box}
+body{
+ margin:0;color:var(--text);font-family:"Pretendard","Noto Sans KR","Malgun Gothic",sans-serif;
+ font-size:16px;line-height:1.6;
+ background:
+  radial-gradient(ellipse at 12% 8%,rgba(255,255,255,.88) 0 8%,transparent 8.5%),
+  radial-gradient(ellipse at 88% 18%,rgba(255,255,255,.72) 0 7%,transparent 7.5%),
+  linear-gradient(180deg,#bce9f4 0%,#e5f5d9 36%,#f5f8d9 100%);
+}
+.wrap{display:grid;grid-template-columns:1fr;min-height:100vh;max-width:1600px;margin:0 auto}
+aside{
+ position:relative;overflow:hidden;color:var(--navy);padding:26px clamp(18px,4vw,58px) 30px;
+ background:
+  radial-gradient(ellipse at 10% 0%,#c8e9ae 0 18%,transparent 18.5%),
+  radial-gradient(ellipse at 94% 0%,#c8e9ae 0 17%,transparent 17.5%),
+  linear-gradient(180deg,rgba(186,231,244,.82),rgba(222,243,202,.88));
+ border-bottom:4px solid #b5d99a;
+}
+aside:before,aside:after{content:"";position:absolute;pointer-events:none;border-radius:50%;z-index:0}
+aside:before{width:260px;height:180px;left:-90px;top:-100px;background:#a9d58d;box-shadow:55px 35px 0 #c5e7a9,110px 12px 0 #b4dc98}
+aside:after{width:250px;height:170px;right:-90px;top:-100px;background:#a9d58d;box-shadow:-55px 35px 0 #c5e7a9,-110px 12px 0 #b4dc98}
+aside h1,aside p.sub,aside fieldset,aside button,aside .scene,aside .leaf-a{position:relative;z-index:1}
+aside h1{
+ display:inline-flex;align-items:center;gap:12px;margin:0 0 5px;padding:9px 22px 9px 18px;
+ color:#51416d;font-size:clamp(23px,3vw,32px);font-weight:900;
+ background:rgba(255,253,245,.96);border:3px solid #b99c9b;border-radius:28px;
+ box-shadow:0 4px 0 rgba(110,91,119,.12);
+}
+aside h1:before{content:"🐰";font-size:36px;line-height:1}
+aside h1:after{content:"🌼";font-size:23px}
+aside p.sub{margin:4px 0 18px 8px;color:#655a79;font-weight:700}
+aside fieldset{
+ display:inline-flex;vertical-align:top;flex-direction:column;gap:7px;
+ min-width:190px;margin:0 12px 14px 0;padding:13px 16px;
+ background:rgba(255,253,247,.94);border:2px solid #c7a7a0;border-radius:20px;
+ box-shadow:0 3px 0 rgba(117,91,105,.1);
+}
+legend{float:left;width:100%;font-weight:900;margin-bottom:5px;font-size:16px;color:#5a4b72}
+select{width:100%;padding:11px 13px;border-radius:12px;border:2px solid #eadbd7;background:#fffefa;color:#574b68;font-size:15px;font-weight:650;margin:0}
+label.opt{display:flex;align-items:center;gap:9px;padding:5px 0;cursor:pointer;font-size:15px;font-weight:650}
+input[type=checkbox],input[type=radio]{width:19px;height:19px;accent-color:#ee82a8}
+button#go{
+ display:inline-flex;align-items:center;justify-content:center;min-width:190px;
+ margin:8px 0 0;padding:14px 28px;border:3px solid #e85f91;border-radius:999px;
+ background:linear-gradient(180deg,#ffb5cd,#f27fa7);color:#fff;font-size:19px;font-weight:900;
+ box-shadow:0 4px 0 #d75d88;cursor:pointer;transition:transform .15s,filter .15s
+}
+button#go:hover{filter:saturate(1.1);transform:translateY(-2px)}
+:focus-visible{outline:3px solid #6bbbd5;outline-offset:3px}
+.scene{display:none}
+.leaf-a{display:none}
+main{
+ position:relative;padding:24px clamp(16px,3.5vw,48px) 48px;
+ background:linear-gradient(180deg,rgba(229,245,210,.68),rgba(247,249,224,.92));
+}
+.hero{height:20px;margin:0 0 10px;opacity:.45}
+.hero svg{height:20px}
+.notice{
+ background:#fff9e8;border:2px solid #e7c987;border-radius:16px;
+ padding:12px 17px;font-size:14px;margin-bottom:14px;color:#75634a;
+ box-shadow:0 2px 0 rgba(154,123,83,.08)
+}
+#status{font-weight:900;color:#57466f;margin:8px 0 14px;font-size:19px}
+#error{background:#fff0ef;border:2px solid #eaa6a0;color:#8a3434;border-radius:16px;padding:14px 16px;margin-bottom:14px;display:none;white-space:pre-line}
+#map{
+ height:430px;border-radius:22px;background:#eaf5e8;border:3px solid #bba0a2;
+ overflow:hidden;margin-bottom:7px;box-shadow:0 4px 0 rgba(117,91,105,.12)
+}
+#mapMessage{font-size:14px;color:#746980;margin:0 0 4px;min-height:22px}
+#mapCredit{font-size:12px;color:#887d91;text-align:right;margin:0 2px 18px}
+#list{display:grid;gap:13px}
+.card{
+ background:rgba(255,254,249,.97);border:2px solid #c6a3a1;border-radius:20px;
+ padding:18px 20px;cursor:pointer;box-shadow:0 3px 0 rgba(117,91,105,.1);
+ transition:transform .15s,box-shadow .15s,border-color .15s
+}
+.card:hover{transform:translateY(-2px);box-shadow:0 6px 0 rgba(117,91,105,.12)}
+.card.sel{border-color:#e875a0;box-shadow:0 0 0 3px #ffd1df,0 4px 0 rgba(117,91,105,.1)}
+.card h3{margin:0 0 7px;font-size:19px;color:#51416d}
+.tag{display:inline-block;font-size:13px;font-weight:800;padding:4px 11px;border:1px solid #f1b4c8;border-radius:99px;background:#ffe7ef;color:#a64d70;margin-bottom:8px}
+.card dl{margin:0;display:grid;grid-template-columns:110px 1fr;gap:5px 10px;font-size:15px}
+.card dt{color:#887d91;font-weight:700}.card dd{margin:0}
+.card a{color:#398ba7;font-weight:800}
+table.st{border-collapse:separate;border-spacing:0;background:#fffefa;border:2px solid #c9aaa3;border-radius:12px;overflow:hidden}
+table.st th,table.st td{border-bottom:1px solid #eadbd7;padding:7px 12px;text-align:right}
+table.st th{background:#e9f4d9;color:#5a4b72}table.st td:first-child{text-align:left}
+details summary{cursor:pointer;background:#fffefa;border:2px solid #c7a7a0;border-radius:13px;padding:10px 14px;color:#59496e}
+#statTable{padding:10px 2px}
+.fs-deco{opacity:.55}
+@media(min-width:1100px){
+ aside{padding-left:clamp(28px,5vw,76px);padding-right:clamp(28px,5vw,76px)}
+ aside fieldset{min-width:205px}
+}
+@media(max-width:820px){
+ .wrap{grid-template-columns:1fr}
+ aside{padding:20px 16px 24px}
+ aside h1{font-size:23px}
+ aside fieldset{display:flex;width:100%;max-width:none;margin:0 0 10px;min-width:0}
+ button#go{width:100%}
+ main{padding:18px 14px 32px}
+ #map{height:55vh;min-height:320px;max-height:520px}
+ .card dl{grid-template-columns:92px 1fr}
+}
 </style>
 </head>
 <body>
